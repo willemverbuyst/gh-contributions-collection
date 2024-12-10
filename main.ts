@@ -3,12 +3,9 @@ import { stringify } from "jsr:@std/yaml";
 
 const GITHUB_GRAPHQL_API = "https://api.github.com/graphql";
 const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
-const GITHUB_USERNAME = Deno.env.get("GITHUB_USERNAME");
 
-if (!GITHUB_TOKEN || !GITHUB_USERNAME) {
-  console.error(
-    "Please define GITHUB_TOKEN and GITHUB_USERNAME in your .env file."
-  );
+if (!GITHUB_TOKEN) {
+  console.error("Please define GITHUB_TOKEN in your .env file.");
   Deno.exit(1);
 }
 
@@ -36,17 +33,27 @@ function getYearFromUser(): number {
   return year;
 }
 
-async function fetchContributionsForYear(year: number) {
+function getUsernameFromUser(): string {
+  const username = prompt("Enter the GitHub username:");
+
+  if (!username || username.trim() === "") {
+    console.error("GitHub username is required.");
+    Deno.exit(1);
+  }
+
+  return username.trim();
+}
+
+async function fetchContributionsForYear(username: string, year: number) {
   const from = `${year}-01-01T00:00:00Z`;
   const to = `${year}-12-31T23:59:59Z`;
 
   const variables = {
-    username: GITHUB_USERNAME,
+    username,
     from,
     to,
   };
 
-  // GraphQL query
   const query = `
     query ($username: String!, $from: DateTime!, $to: DateTime!) {
       user(login: $username) {
@@ -107,15 +114,16 @@ async function fetchContributionsForYear(year: number) {
 
   const yamlData = stringify(contributionsYaml);
 
-  const outputFilePath = `contributions_${GITHUB_USERNAME}_${year}.yml`;
+  const outputFilePath = `contributions_${username}_${year}.yml`;
   await Deno.writeTextFile(outputFilePath, yamlData);
 
   console.log(`Contributions data written to ${outputFilePath}`);
 }
 
 async function main() {
-  const year = await getYearFromUser();
-  await fetchContributionsForYear(year);
+  const username = getUsernameFromUser();
+  const year = getYearFromUser();
+  await fetchContributionsForYear(username, year);
 }
 
 main().catch((error) => console.error("Error:", error));
