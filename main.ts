@@ -1,4 +1,5 @@
 import "jsr:@std/dotenv/load";
+import { stringify } from "jsr:@std/yaml";
 
 const GITHUB_GRAPHQL_API = "https://api.github.com/graphql";
 const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
@@ -60,19 +61,29 @@ async function fetchContributions() {
     return;
   }
 
+  type Week = { contributionDays: { contributionCount: number; date: string } };
+  type Day = { contributionCount: number; date: string };
+
   const weeks =
     data.data.user.contributionsCollection.contributionCalendar.weeks;
   const dailyContributions = weeks.flatMap(
-    (week: { contributionDays: { contributionCount: number; date: string } }) =>
-      week.contributionDays
+    (week: Week) => week.contributionDays
   );
 
-  console.log("Contributions per Day in 2024:");
-  dailyContributions.forEach(
-    (day: { contributionCount: number; date: string }) => {
-      console.log(`${day.date}: ${day.contributionCount} contributions`);
-    }
+  const contributionsYaml = dailyContributions.reduce(
+    (acc: Record<string, number>, day: Day) => {
+      acc[day.date] = day.contributionCount;
+      return acc;
+    },
+    {}
   );
+
+  const yamlData = stringify(contributionsYaml);
+
+  const outputFilePath = `contributions_${GITHUB_USERNAME}_2024.yml`;
+  await Deno.writeTextFile(outputFilePath, yamlData);
+
+  console.log(`Contributions data written to ${outputFilePath}`);
 }
 
 fetchContributions().catch((error) => console.error("Error:", error));

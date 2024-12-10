@@ -1,3 +1,3 @@
 # README
 
-> deno run --allow-net --allow-read --allow-env main.ts
+> deno run --allow-net --allow-read --allow-env --allow-write main.ts
