@@ -12,20 +12,27 @@ if (!GITHUB_TOKEN || !GITHUB_USERNAME) {
 }
 
 const query = `
-  query ($username: String!) {
+  query ($username: String!, $from: DateTime!, $to: DateTime!) {
     user(login: $username) {
-      contributionsCollection {
-        totalCommitContributions
-        totalPullRequestContributions
-        totalIssueContributions
-        restrictedContributionsCount
+      contributionsCollection(from: $from, to: $to) {
+        contributionCalendar {
+          weeks {
+            contributionDays {
+              date
+              contributionCount
+            }
+          }
+        }
       }
     }
   }
 `;
 
+// Define the date range for 2024
 const variables = {
   username: GITHUB_USERNAME,
+  from: "2024-01-01T00:00:00Z",
+  to: "2024-12-31T23:59:59Z",
 };
 
 async function fetchContributions() {
@@ -53,15 +60,19 @@ async function fetchContributions() {
     return;
   }
 
-  const contributions = data.data.user.contributionsCollection;
-  console.log("Contributions Summary:");
-  console.log(`Commits: ${contributions.totalCommitContributions}`);
-  console.log(`Pull Requests: ${contributions.totalPullRequestContributions}`);
-  console.log(`Issues: ${contributions.totalIssueContributions}`);
-  console.log(
-    `Restricted Contributions: ${contributions.restrictedContributionsCount}`
+  const weeks =
+    data.data.user.contributionsCollection.contributionCalendar.weeks;
+  const dailyContributions = weeks.flatMap(
+    (week: { contributionDays: { contributionCount: number; date: string } }) =>
+      week.contributionDays
+  );
+
+  console.log("Contributions per Day in 2024:");
+  dailyContributions.forEach(
+    (day: { contributionCount: number; date: string }) => {
+      console.log(`${day.date}: ${day.contributionCount} contributions`);
+    }
   );
 }
 
-// Run the function
 fetchContributions().catch((error) => console.error("Error:", error));
