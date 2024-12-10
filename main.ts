@@ -12,31 +12,58 @@ if (!GITHUB_TOKEN || !GITHUB_USERNAME) {
   Deno.exit(1);
 }
 
-const query = `
-  query ($username: String!, $from: DateTime!, $to: DateTime!) {
-    user(login: $username) {
-      contributionsCollection(from: $from, to: $to) {
-        contributionCalendar {
-          weeks {
-            contributionDays {
-              date
-              contributionCount
+function getYearFromUser(): number {
+  const yearInput = prompt(
+    "Enter the year you want to query contributions for:"
+  );
+
+  if (!yearInput) {
+    console.error("Year input is required.");
+    Deno.exit(1);
+  }
+
+  const year = parseInt(yearInput, 10);
+  const currentYear = new Date().getFullYear();
+
+  // Validate if it's a number and within a reasonable range
+  if (isNaN(year) || year < 2000 || year > currentYear) {
+    console.error(
+      `Invalid year. Please enter a year between 2000 and ${currentYear}.`
+    );
+    Deno.exit(1);
+  }
+
+  return year;
+}
+
+async function fetchContributionsForYear(year: number) {
+  const from = `${year}-01-01T00:00:00Z`;
+  const to = `${year}-12-31T23:59:59Z`;
+
+  const variables = {
+    username: GITHUB_USERNAME,
+    from,
+    to,
+  };
+
+  // GraphQL query
+  const query = `
+    query ($username: String!, $from: DateTime!, $to: DateTime!) {
+      user(login: $username) {
+        contributionsCollection(from: $from, to: $to) {
+          contributionCalendar {
+            weeks {
+              contributionDays {
+                date
+                contributionCount
+              }
             }
           }
         }
       }
     }
-  }
-`;
+  `;
 
-// Define the date range for 2024
-const variables = {
-  username: GITHUB_USERNAME,
-  from: "2024-01-01T00:00:00Z",
-  to: "2024-12-31T23:59:59Z",
-};
-
-async function fetchContributions() {
   const response = await fetch(GITHUB_GRAPHQL_API, {
     method: "POST",
     headers: {
@@ -80,10 +107,15 @@ async function fetchContributions() {
 
   const yamlData = stringify(contributionsYaml);
 
-  const outputFilePath = `contributions_${GITHUB_USERNAME}_2024.yml`;
+  const outputFilePath = `contributions_${GITHUB_USERNAME}_${year}.yml`;
   await Deno.writeTextFile(outputFilePath, yamlData);
 
   console.log(`Contributions data written to ${outputFilePath}`);
 }
 
-fetchContributions().catch((error) => console.error("Error:", error));
+async function main() {
+  const year = await getYearFromUser();
+  await fetchContributionsForYear(year);
+}
+
+main().catch((error) => console.error("Error:", error));
