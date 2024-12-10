@@ -120,10 +120,39 @@ async function fetchContributionsForYear(username: string, year: number) {
   console.log(`Contributions data written to ${outputFilePath}`);
 }
 
+function getYesNoAnswer(promptMessage: string): boolean {
+  const answer = prompt(promptMessage)?.toLowerCase().trim();
+
+  if (answer === "y" || answer === "yes") {
+    return true;
+  } else if (answer === "n" || answer === "no") {
+    return false;
+  } else {
+    console.error("Invalid input, please enter 'y' or 'n'.");
+    Deno.exit(1);
+  }
+}
+
 async function main() {
-  const username = getUsernameFromUser();
   const year = getYearFromUser();
-  await fetchContributionsForYear(username, year);
+
+  const usernames: string[] = [];
+
+  const addAnotherUserPromt = "Do you want to add another username? (yes/no)";
+  const username = getUsernameFromUser();
+  usernames.push(username);
+
+  let addAnotherUser = getYesNoAnswer(addAnotherUserPromt);
+
+  while (addAnotherUser) {
+    const secondUsername = getUsernameFromUser();
+    usernames.push(secondUsername);
+    addAnotherUser = getYesNoAnswer(addAnotherUserPromt);
+  }
+
+  for (const user of usernames) {
+    await fetchContributionsForYear(user, year);
+  }
 }
 
 main().catch((error) => console.error("Error:", error));
