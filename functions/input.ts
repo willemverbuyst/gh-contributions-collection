@@ -51,16 +51,16 @@ export function getUserInput(): { year: number; usernames: string[] } {
 
   const usernames: string[] = [];
 
-  const addAnotherUserPromt = "Do you want to add another username? (yes/no)";
+  const addAnotherUserPrompt = "Do you want to add another username? (yes/no)";
   const username = getUsernameFromUser();
   usernames.push(username);
 
-  let addAnotherUser = getYesNoAnswer(addAnotherUserPromt);
+  let addAnotherUser = getYesNoAnswer(addAnotherUserPrompt);
 
   while (addAnotherUser) {
     const secondUsername = getUsernameFromUser();
     usernames.push(secondUsername);
-    addAnotherUser = getYesNoAnswer(addAnotherUserPromt);
+    addAnotherUser = getYesNoAnswer(addAnotherUserPrompt);
   }
 
   return { year, usernames };
